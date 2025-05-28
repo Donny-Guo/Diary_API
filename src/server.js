@@ -11,6 +11,7 @@ if (process.env.NODE_ENV === "production") {
 
 const PORT = process.env.PORT
 const app = express()
+app.set('trust proxy', 1);
 
 // middleware
 app.use(rateLimiter)
