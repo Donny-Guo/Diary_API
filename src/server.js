@@ -3,6 +3,11 @@ import 'dotenv/config'
 import { initDB } from './config/db.js'
 import diaryRouter from "./routes/diaryRoute.js"
 import rateLimiter from './middleware/rateLimiter.js'
+import job from "./config/cron.js"
+
+if (process.env.NODE_ENV === "production") {
+  job.start()
+}
 
 const PORT = process.env.PORT
 const app = express()
