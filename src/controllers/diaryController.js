@@ -1,5 +1,6 @@
 import { sql } from '../config/db.js'
 import { uploadImage } from "../config/cloudinary.js"
+import { generateCatDiaryAllFromImage } from "../config/catDiaryService.js"
 
 export async function getDiariesByUserId(req, res) {
   try {
@@ -41,24 +42,37 @@ export async function createDiary(req, res) {
     // upload to cloudinary
     const uploadResult = await uploadImage(dataURI, [user_id, 'test'])
     const image_url = uploadResult["secure_url"]
-    const text = "hello world"
-    const emotion_category = "happy"
-    const animal_category = "cat"
     console.log('image_url:', image_url)
+    // Initialize default value
+    let text = "hello world"
+    let emotion_category = "happy"
+    let animal_category = "cat"
+
+    // get generated text from AI
+    try {
+      // no audio version
+      const generatedResult = await generateCatDiaryAllFromImage(image_url)
+      text = generatedResult.text
+      emotion_category = generatedResult.tone
+      console.log("Diary generated successfully:", generatedResult);
+    } catch (error) {
+      console.error("Error generating cat diary:", error.message);
+    }
+    
 
     // add entry to postgres db
     try {
-      await sql`
+      const result = await sql`
         INSERT INTO diaries (user_id, text, image_url, emotion_category, animal_category)
         VALUES (${user_id}, ${text}, ${image_url}, ${emotion_category}, ${animal_category} )
         RETURNING *;
       `
+      res.status(200).json(result[0])
+
     } catch (error) {
       console.log("Error adding new entry to db:", error)
       res.status(500).json({ message: "Internal Server Error" })
     }
-
-    res.status(200).json({ 'image_url': image_url })
 
   } catch (error) {
     console.error('Upload error:', error);
