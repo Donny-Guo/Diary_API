@@ -1,6 +1,6 @@
 import { sql } from '../config/db.js'
-import { uploadImage } from "../config/cloudinary.js"
-import { generateCatDiaryAllFromImage } from "../config/catDiaryService.js"
+import { uploadImage, uploadAudio } from "../config/cloudinary.js"
+import { generateCatDiaryAllFromImage, detectCatToneFromImage, generatePersonaFromImage, generateCatDiary, chooseVoiceFromTone, generateAudio } from "../config/catDiaryService.js"
 
 export async function getDiariesByUserId(req, res) {
   try {
@@ -13,6 +13,131 @@ export async function getDiariesByUserId(req, res) {
 
   } catch (error) {
     console.log("Error getting user diaries:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
+
+export async function getToneFromImageUrl(req, res) {
+  try {
+    const { image_url } = req.body
+    console.log(req.body)
+    if (!image_url) {
+      return res.status(400).json({"error": "Image url is required"})
+    }
+
+    const tone = await detectCatToneFromImage(image_url)
+    res.status(200).json({tone})
+
+  } catch (error) {
+    console.log("Error getting tone from image url:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
+
+export async function processImage(req, res) {
+  try {
+    // Get other parameters
+    const { user_id } = req.body;
+
+    // Check if file exists
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Please upload an image'
+      });
+    }
+
+    // Validate required fields
+    if (!user_id) {
+      return res.status(400).json({
+        error: 'user_id is required'
+      });
+    }
+
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+    // upload to cloudinary
+    const uploadResult = await uploadImage(dataURI, [user_id, 'test'])
+    const image_url = uploadResult["secure_url"]
+    // console.log('image_url:', image_url)
+    res.status(200).json({ image_url })
+
+  } catch (error) {
+    console.log("Error processing image:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
+
+export async function getPersonaFromImageAndTone(req, res) {
+  try {
+    const {image_url, tone} = req.body
+    if (!image_url) {
+      return res.status(400).json({
+        error: "image_url is required"
+      })
+    }
+
+    if (!tone) {
+      return res.status(400).json({
+        error: "tone of the image is required"
+      })
+    }
+
+    const persona = await generatePersonaFromImage(image_url, tone)
+    res.status(200).json({persona})
+
+  } catch (error) {
+    console.log("Error getting persona from image and tone:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
+
+export async function getDiaryFromImageAndPersona(req, res) {
+  try {
+    const { image_url, persona } = req.body
+    if (!image_url) {
+      return res.status(400).json({
+        error: "image_url is required"
+      })
+    }
+
+    if (!persona) {
+      return res.status(400).json({
+        error: "persona is required"
+      })
+    }
+
+    const diary_text = await generateCatDiary(persona, image_url)
+
+    res.status(200).json({ diary_text })
+
+  } catch (error) {
+    console.log("Error getting diary from image and persona:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
+
+export async function getAudioFromDiaryAndTone(req, res) {
+  try {
+    const {text, tone} = req.body
+    if (!text) {
+      return res.status(400).json({
+        error: "diary text is required"
+      })
+    }
+    if (!tone) {
+      return res.status(400).json({
+        error: "tone is required"
+      })
+    }
+
+    const voice = chooseVoiceFromTone(tone)
+    const audioBuffer = await generateAudio(text, voice)
+    const audio_url = await uploadAudio(audioBuffer)
+    res.status(200).json({audio_url})
+    
+  } catch (error) {
+    console.log("Error getting audio from Diary text and voice:", error)
     res.status(500).json({ message: "Internal Server Error" })
   }
 }
@@ -58,7 +183,6 @@ export async function createDiary(req, res) {
     } catch (error) {
       console.error("Error generating cat diary:", error.message);
     }
-    
 
     // add entry to postgres db
     try {

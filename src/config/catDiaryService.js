@@ -25,7 +25,7 @@ const VOICE_MAP = {
 // Step 1: Detect tone from image URL
 export async function detectCatToneFromImage(imageUrl) {
   const prompt = `You are a professional cat psychologist. Look at the cat in this photo and describe the tone of voice it would use if it could talk.
-Return just ONE word like: sarcastic, sleepy, angry, cute, flirty, dramatic, grumpy, mysterious.`;
+  Return only ONE word like: sarcastic, sleepy, angry, cute, flirty, dramatic, grumpy, mysterious. No extra word allowed.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -41,15 +41,17 @@ Return just ONE word like: sarcastic, sleepy, angry, cute, flirty, dramatic, gru
     max_tokens: 10
   });
 
-  return response.choices[0].message.content.trim().toLowerCase();
+  const tone = response.choices[0].message.content.trim().replace(/\.$/, '').toLowerCase() // remove trailing period
+
+  return tone;
 }
 
 // Step 2: Generate persona
-export async function generatePromptFromImage(imageUrl, tone) {
+export async function generatePersonaFromImage(imageUrl, tone) {
   const prompt = `You're an imaginative and humorous AI cat. Look at this image of yourself and create a storytelling persona based on your expression and surroundings.
-Write a 1-sentence instruction describing your role today. Be creative and tone-aligned.
-Tone: ${tone}
-Return just the instruction.`;
+  Write a 1-sentence instruction describing your role today. Be creative and tone-aligned.
+  Tone: ${tone}
+  Return just the instruction.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -70,7 +72,7 @@ Return just the instruction.`;
 
 // Step 3: Generate diary
 export async function generateCatDiary(personaPrompt, imageUrl) {
-  const prompt = `${personaPrompt}\nNow write a dramatic, cute, sarcastic, or poetic diary entry (max 80 words) in that voice, from the cat's point of view. Be expressive.`;
+  const prompt = `${personaPrompt}\nNow write a dramatic, cute, sarcastic, or poetic diary entry (max 80 words) in that voice, from the cat's point of view. Be expressive and based on the cat image.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -101,7 +103,7 @@ export function chooseVoiceFromTone(tone) {
 }
 
 // Step 5: Generate audio file
-export async function generateAudio(text, voice, outputPath) {
+export async function generateAudio(text, voice) {
   const response = await openai.audio.speech.create({
     model: "tts-1",
     voice,
@@ -110,13 +112,13 @@ export async function generateAudio(text, voice, outputPath) {
   });
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  await fs.writeFile(outputPath, buffer);
+  return buffer;
 }
 
 // Step 6: Full pipeline
 export async function generateCatDiaryAllFromImage(imageUrl, outputDir='', generateAudioFlag = false) {
   const tone = await detectCatToneFromImage(imageUrl);
-  const persona = await generatePromptFromImage(imageUrl, tone);
+  const persona = await generatePersonaFromImage(imageUrl, tone);
   const diaryText = await generateCatDiary(persona, imageUrl);
   const voice = chooseVoiceFromTone(tone);
 

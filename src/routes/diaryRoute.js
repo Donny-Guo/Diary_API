@@ -1,6 +1,6 @@
 import express from 'express'
 import multer from "multer"
-import { getDiariesByUserId, deleteDiary, getSummaryByUserID, createDiary } from "../controllers/diaryController.js"
+import { getDiariesByUserId, deleteDiary, getSummaryByUserID, createDiary, processImage, getToneFromImageUrl, getPersonaFromImageAndTone, getDiaryFromImageAndPersona, getAudioFromDiaryAndTone } from "../controllers/diaryController.js"
 
 const router = express.Router()
 
@@ -18,6 +18,16 @@ const upload = multer({
 })
 
 router.get('/:user_id', getDiariesByUserId)
+
+router.post('/upload/image', upload.single('image'), processImage)
+
+router.post('/tone', getToneFromImageUrl)
+
+router.post('/persona', getPersonaFromImageAndTone)
+
+router.post('/newDiary', getDiaryFromImageAndPersona)
+
+router.post('/audio', getAudioFromDiaryAndTone)
 
 router.post("/upload", upload.single('image'), createDiary)
 
