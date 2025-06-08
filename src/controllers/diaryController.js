@@ -132,8 +132,12 @@ export async function getAudioFromDiaryAndTone(req, res) {
     }
 
     const voice = chooseVoiceFromTone(tone)
+    console.log("generating audio...")
     const audioBuffer = await generateAudio(text, voice)
+    console.log("uploading audio...")
     const audio_url = await uploadAudio(audioBuffer)
+    if (!audio_url) throw new Error("Fail to get audio_url")
+    console.log("audio_url:", audio_url)
     res.status(200).json({audio_url})
     
   } catch (error) {
@@ -142,6 +146,7 @@ export async function getAudioFromDiaryAndTone(req, res) {
   }
 }
 
+// old create diary entry method
 export async function createDiary(req, res) {
   try {
     // Get other parameters
@@ -244,5 +249,99 @@ export async function getSummaryByUserID(req, res) {
   } catch (error) {
     console.log("Error getting user summary:", error)
     res.status(500).json({ message: "Internal server error" })
+  }
+}
+
+export async function createNewDiaryEntry(req, res) {
+  // user_id, text, image_url, audio_url (may be null), emotion_category, 
+  // animal_category
+
+  try {
+    const {user_id, text, image_url, emotion_category, animal_category} = req.body
+
+    if (!user_id) {
+      return res.status(400).json({error: "user_id can not be empty"})
+    }
+    if (!text) {
+      return res.status(400).json({ error: "diary text can not be empty" })
+    }
+    if (!image_url) {
+      return res.status(400).json({ error: "image_url can not be empty" })
+    }
+    if (!emotion_category) {
+      return res.status(400).json({ error: "emotion_category can not be empty" })
+    }
+    if (!animal_category) {
+      return res.status(400).json({ error: "animal_category can not be empty" })
+    }
+
+    let {audio_url} = req.body
+    if (!audio_url) {
+      audio_url = ""
+    }
+
+    const result = await sql`
+      INSERT INTO diaries (user_id, text, image_url, audio_url, emotion_category, animal_category)
+        VALUES (${user_id}, ${text}, ${image_url}, ${audio_url}, ${emotion_category}, ${animal_category} )
+        RETURNING *;
+    `
+    res.status(200).json(result[0])
+
+  } catch (error) {
+    console.error("Error creating new diary entry in db:", error)
+    res.status(500).json({message: "Internal Server Error"})
+  }
+}
+
+export async function updateDiaryEntry(req, res) {
+  try {
+    const { id, user_id, text, image_url, emotion_category, animal_category } = req.body
+
+    if (!id) {
+      return res.status(400).json({error: "diary id can not be empty"})
+    }
+    if (!user_id) {
+      return res.status(400).json({ error: "user_id can not be empty" })
+    }
+    if (!text) {
+      return res.status(400).json({ error: "diary text can not be empty" })
+    }
+    if (!image_url) {
+      return res.status(400).json({ error: "image_url can not be empty" })
+    }
+    if (!emotion_category) {
+      return res.status(400).json({ error: "emotion_category can not be empty" })
+    }
+    if (!animal_category) {
+      return res.status(400).json({ error: "animal_category can not be empty" })
+    }
+
+    let { audio_url } = req.body
+    if (!audio_url) {
+      audio_url = ""
+    }
+
+    const result = await sql`
+      UPDATE diaries 
+      SET text = ${text}, 
+        image_url = ${image_url}, 
+        audio_url = ${audio_url}, 
+        emotion_category = ${emotion_category}, 
+        animal_category = ${animal_category}
+      WHERE id = ${id} AND user_id = ${user_id}
+      RETURNING *;
+    `
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Diary entry not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Diary updated successfully',
+      data: result[0]
+    })
+
+  } catch (error) {
+    console.error("Error updating diary entry:", error)
+    res.status(500).json({ message: "Internal Server Error" })
   }
 }

@@ -1,6 +1,6 @@
 import express from 'express'
 import multer from "multer"
-import { getDiariesByUserId, deleteDiary, getSummaryByUserID, createDiary, processImage, getToneFromImageUrl, getPersonaFromImageAndTone, getDiaryFromImageAndPersona, getAudioFromDiaryAndTone } from "../controllers/diaryController.js"
+import { getDiariesByUserId, deleteDiary, getSummaryByUserID, processImage, getToneFromImageUrl, getPersonaFromImageAndTone, getDiaryFromImageAndPersona, getAudioFromDiaryAndTone, createNewDiaryEntry, updateDiaryEntry } from "../controllers/diaryController.js"
 
 const router = express.Router()
 
@@ -29,7 +29,12 @@ router.post('/newDiary', getDiaryFromImageAndPersona)
 
 router.post('/audio', getAudioFromDiaryAndTone)
 
-router.post("/upload", upload.single('image'), createDiary)
+router.post('/newEntry', createNewDiaryEntry)
+
+router.put('/updateEntry', updateDiaryEntry)
+
+// old create diary entry method
+// router.post("/upload", upload.single('image'), createDiary)
 
 router.delete('/:id', deleteDiary)
 

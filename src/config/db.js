@@ -11,6 +11,7 @@ export async function initDB() {
       user_id VARCHAR(255) NOT NULL,
       text TEXT NOT NULL,
       image_url VARCHAR(255) NOT NULL,
+      audio_url VARCHAR(255),
       emotion_category VARCHAR(255) NOT NULL,
       animal_category VARCHAR(255) NOT NULL,
       created_at TIMESTAMP (0) WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP

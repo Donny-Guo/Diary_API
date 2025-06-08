@@ -3,7 +3,7 @@ import { Ratelimit } from "@upstash/ratelimit"
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(4, "60 s")
+  limiter: Ratelimit.slidingWindow(100, "60 s")
 })
 
 export default ratelimit
